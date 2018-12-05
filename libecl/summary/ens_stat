@@ -1,0 +1,62 @@
+#!/usr/bin/env python
+import sys
+import numpy as np
+from ecl.summary import EclSum
+
+# This small example illustrates how the EclSum class and numpy can be used to
+# assemble basis ensemble statistics from a list of simulations. The current
+# example is mainly to illustrate loading how to load summary cases, and the
+# use of the EclSum.numpy_vector() to extract summary vectors - it does not
+# really "do anything" with the calculated statistics.
+
+
+
+# Input is a list of paths to simulation cases, and the return value is the
+# corresponding list of EclSum instances.
+def load(argv):
+    case_list = []
+    for case in argv:
+        case_list.append( EclSum(case) )
+
+    return case_list
+
+
+# This function will take a list of EclSum instances and a summary key - e.g.
+# 'FOPT' and create a 2D numpy array where each realization corresponds to one
+# column. The summary vectors are evaulated - with interpolation - at every
+# month. It is assumed that all summary cases cover the same temporal range.
+def numpy_matrix(case_list, key):
+    case0 = case_list[0]
+    time_points = case0.time_range(interval="1M")
+
+    data = np.ndarray((len(time_points), len(case_list)))
+    for index,case in enumerate(case_list):
+        v = case.numpy_vector(key, time_index = time_points)
+        data[:,index] = v
+    return data
+
+
+def stats(case_list, key):
+    data = numpy_matrix(case_list, key)
+
+    mean = np.mean(data, axis=1)
+    std = np.std(data, axis=1)
+
+    try:
+        p10 = np.quantile(data, 0.10, axis=1)
+        p90 = np.quantile(data, 0.90, axis=1)
+    except AttributeError:
+        print("Sorry - current numpy version:{} does not have the quantile function - upgrade to 1.15.".format(np.version.full_version))
+
+
+
+def main(argv):
+    case_list = load(argv)
+    stats(case_list, "FOPT")
+
+# Typical usage:
+#
+# ens_stat simulations/CASE*.SMSPEC
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
