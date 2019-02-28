@@ -55,4 +55,4 @@ if __name__ == "__main__":
     obs = load_obs(sys.argv[1])
     summary_list = [ EclSum(arg) for arg in sys.argv[2:] ]
     frame = eval_misfit(summary_list, obs)
-    print frame
+    print frame.to_string()
